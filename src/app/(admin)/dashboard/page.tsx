@@ -43,26 +43,15 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8 animate-fadeIn">
-      {/* Hero Welcome */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-600 via-primary-500 to-accent-500 p-6 md:p-8 text-white shadow-elevated">
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1 text-xs font-semibold mb-3">
-              <TrendingUp className="w-3 h-3" />
-              Panel de Control
-            </div>
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">¡Bienvenido de nuevo!</h2>
-            <p className="text-white/80 mt-1 text-sm md:text-base">Aquí tienes el resumen de actividad del sistema de nivelación.</p>
-          </div>
-          <Link
-            href="/asignaciones"
-            className="inline-flex items-center gap-2 bg-white text-primary-700 hover:bg-white/95 text-sm font-semibold px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all"
-          >
-            Nueva Solicitud
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
+      {/* Action Buttons */}
+      <div className="flex justify-start">
+        <Link
+          href="/asignaciones"
+          className="inline-flex items-center gap-2 bg-primary-600 text-white hover:bg-primary-700 text-sm font-semibold px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all"
+        >
+          Nueva Solicitud
+          <ArrowRight className="w-4 h-4" />
+        </Link>
       </div>
 
       {/* KPI Cards */}

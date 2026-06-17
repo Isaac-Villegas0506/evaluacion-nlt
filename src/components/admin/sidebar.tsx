@@ -1,5 +1,6 @@
 "use client"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import toast from "react-hot-toast"
@@ -30,8 +31,14 @@ export function Sidebar() {
       {/* Brand Header */}
       <div className="h-20 flex items-center px-6 border-b border-border-light">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-600 to-accent-500 flex items-center justify-center shadow-md shadow-primary-600/30">
-            <GraduationCap className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-md border border-border-default overflow-hidden p-1">
+            <Image
+              src="/logo.png"
+              alt="Logo"
+              width={32}
+              height={32}
+              className="object-contain"
+            />
           </div>
           <div>
             <span className="text-text-primary font-bold text-base tracking-tight block leading-tight">Nivelación</span>
