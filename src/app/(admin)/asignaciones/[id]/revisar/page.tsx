@@ -140,7 +140,7 @@ export default function RevisarAsignacionPage({ params }: { params: Promise<{ id
       }
     }
 
-    const { error } = await supabase.from("asignaciones").update({ estado: status }).eq("id", asignacionId)
+    const { error } = await (supabase.from("asignaciones").update as any)({ estado: status }).eq("id", asignacionId)
     
     if (error) {
       toast.error("Error al actualizar estado")
