@@ -131,7 +131,7 @@ export default function RevisarAsignacionPage({ params }: { params: Promise<{ id
       const { data: existingCert } = await supabase.from("certificados").select("id").eq("intento_id", intento.id).single()
       
       if (!existingCert) {
-        await supabase.from("certificados").insert({
+        await (supabase.from("certificados").insert as any)({
           estudiante_id: asignacion.estudiante_id,
           examen_id: asignacion.examen_id,
           intento_id: intento.id,
