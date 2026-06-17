@@ -196,9 +196,6 @@ export default function ExamenWelcomePage({ params }: { params: Promise<{ token:
 
           {asignacion.estado === 'aprobado' && (
             <div className="text-center py-8 bg-gradient-to-br from-success-50 to-accent-50 rounded-xl border border-success-500/20">
-              <div className="inline-flex p-3 rounded-2xl bg-white shadow-sm text-success-600 mb-4">
-                <Sparkles className="w-8 h-8" />
-              </div>
               <h3 className="text-2xl font-bold text-text-primary mb-2">¡Felicitaciones!</h3>
               <p className="text-sm text-text-tertiary mb-6 max-w-sm mx-auto">Has aprobado satisfactoriamente la evaluación.</p>
               <CertificateDownloadButton

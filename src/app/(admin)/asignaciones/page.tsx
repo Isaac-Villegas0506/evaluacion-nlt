@@ -489,9 +489,6 @@ export default function SolicitudesPage() {
         variant="success"
       >
         <div className="text-center -mt-2">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-success-500 to-emerald flex items-center justify-center mx-auto mb-4 shadow-lg shadow-success-500/30">
-            <Sparkles className="w-8 h-8 text-white" />
-          </div>
           <p className="text-sm text-text-tertiary mb-1">
             Evaluación asignada correctamente a
           </p>
@@ -501,7 +498,7 @@ export default function SolicitudesPage() {
           <div className="flex flex-col gap-2">
             <button
               onClick={() => copyToClipboard(successData!.token)}
-              className="w-full inline-flex items-center justify-center gap-2 bg-text-primary text-white hover:bg-text-secondary text-sm font-semibold px-4 h-11 rounded-xl transition-all shadow-sm"
+              className="w-full inline-flex items-center justify-center gap-2 bg-primary-600 text-white hover:bg-primary-700 text-sm font-semibold px-4 h-11 rounded-xl transition-all shadow-sm"
             >
               <Copy className="w-4 h-4" />
               Copiar Enlace

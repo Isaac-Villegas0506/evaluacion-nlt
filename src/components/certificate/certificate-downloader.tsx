@@ -14,7 +14,7 @@ export function CertificateDownloadButton({ data }: { data: CertificateData }) {
 
   if (!isClient) {
     return (
-      <Button className="w-full gap-2 bg-accent text-white" disabled>
+      <Button className="w-full gap-2 bg-primary-600 text-white opacity-70" disabled>
         <Loader2 className="w-5 h-5 animate-spin" /> Cargando Certificado...
       </Button>
     )
@@ -28,7 +28,7 @@ export function CertificateDownloadButton({ data }: { data: CertificateData }) {
     >
       {({ blob, url, loading, error }) => (
         <Button 
-          className="w-full gap-2 bg-accent hover:bg-emerald-600 text-white shadow-lg shadow-accent/20"
+          className="w-full gap-2 bg-primary-600 hover:bg-primary-700 text-white shadow-lg shadow-primary-600/20"
           isLoading={loading}
           disabled={loading || !!error}
         >
