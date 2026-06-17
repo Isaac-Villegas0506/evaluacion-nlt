@@ -116,7 +116,7 @@ export default function SolicitudesPage() {
     setSaving(true)
 
     let estudianteId = null
-    const { data: existingEstudiante } = await supabase.from("estudiantes").select("id").eq("dni", dni).single()
+    const { data: existingEstudiante } = await supabase.from("estudiantes").select("id").eq("dni", dni).single() as { data: any, error: any }
 
     if (existingEstudiante) {
       estudianteId = existingEstudiante.id
