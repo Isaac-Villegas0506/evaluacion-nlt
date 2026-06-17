@@ -126,10 +126,10 @@ export default function SolicitudesPage() {
       if (nombres.trim()) updateData.nombres = nombres
 
       if (Object.keys(updateData).length > 0) {
-        await supabase.from("estudiantes").update(updateData).eq("id", estudianteId)
+        await (supabase.from("estudiantes").update as any)(updateData).eq("id", estudianteId)
       }
     } else {
-      const { data: newEstudiante, error: estError } = await supabase.from("estudiantes").insert([{
+      const { data: newEstudiante, error: estError } = await (supabase.from("estudiantes").insert as any)([{
         dni, nombres, correo: emailToSave, celular
       }]).select().single()
 
@@ -141,8 +141,8 @@ export default function SolicitudesPage() {
       estudianteId = newEstudiante.id
     }
 
-    const { data: existingAsig } = await supabase.from("asignaciones")
-      .select("id")
+    const { data: existingAsig } = await (supabase.from("asignaciones")
+      .select as any)("id")
       .eq("estudiante_id", estudianteId)
       .eq("examen_id", selectedExamen)
       .single()
@@ -153,7 +153,7 @@ export default function SolicitudesPage() {
       return
     }
 
-    const { data: nuevaAsignacion, error } = await supabase.from("asignaciones").insert([{
+    const { data: nuevaAsignacion, error } = await (supabase.from("asignaciones").insert as any)([{
       estudiante_id: estudianteId,
       examen_id: selectedExamen
     }]).select().single()
@@ -170,7 +170,7 @@ export default function SolicitudesPage() {
 
   const confirmDelete = async () => {
     if (!asigToDelete) return
-    const { error } = await supabase.from("asignaciones").delete().eq("id", asigToDelete.id)
+    const { error } = await (supabase.from("asignaciones").delete as any)().eq("id", asigToDelete.id)
     if (error) {
       toast.error("Error al eliminar")
     } else {
