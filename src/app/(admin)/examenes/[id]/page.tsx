@@ -3,7 +3,7 @@ import { useState, useEffect, use } from "react"
 import { createClient } from "@/lib/supabase/client"
 import toast from "react-hot-toast"
 import Link from "next/link"
-import { ArrowLeft, Plus, Trash2, Settings, Clock, Award, ListOrdered, FileText, X, Save, CheckCircle2, Circle, Type, AlignLeft, ChevronUp, ChevronDown, Loader2, BookOpen, ToggleLeft, ToggleRight } from "lucide-react"
+import { ArrowLeft, Plus, Trash2, Settings, Clock, Award, ListOrdered, FileText, X, Save, CheckCircle2, Circle, Type, AlignLeft, ChevronUp, ChevronDown, Loader2, BookOpen, ToggleLeft, ToggleRight, Edit2, ImagePlus, AlertTriangle, Calculator } from "lucide-react"
 import { Modal } from "@/components/ui/modal"
 
 export default function ExamBuilderPage({ params }: { params: Promise<{ id: string }> }) {
@@ -14,6 +14,12 @@ export default function ExamBuilderPage({ params }: { params: Promise<{ id: stri
   const [preguntas, setPreguntas] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null)
+
+  // Image Upload State
+  const [imagenFile, setImagenFile] = useState<File | null>(null)
+  const [imagenPreview, setImagenPreview] = useState<string | null>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
 
   // Question Form State
   const [tipo, setTipo] = useState<'multiple' | 'verdadero_falso' | 'corta' | 'desarrollo'>('multiple')
@@ -52,15 +58,56 @@ export default function ExamBuilderPage({ params }: { params: Promise<{ id: stri
     fetchExamAndQuestions()
   }, [examId])
 
-  const handleOpenModal = () => {
-    setTipo('multiple')
-    setPreguntaText("")
-    setPuntaje("1")
-    setOpciones([
-      { texto: "", es_correcta: true },
-      { texto: "", es_correcta: false }
-    ])
+  const handleOpenModal = (pregunta: any = null) => {
+    if (pregunta && pregunta.id) {
+      setEditingQuestionId(pregunta.id)
+      setTipo(pregunta.tipo)
+      setPreguntaText(pregunta.pregunta)
+      setPuntaje(pregunta.puntaje.toString())
+      setImagenPreview(pregunta.imagen_url || null)
+      setImagenFile(null)
+      if (pregunta.tipo === 'multiple') {
+        if (pregunta.opciones && pregunta.opciones.length > 0) {
+          setOpciones(pregunta.opciones.map((o: any) => ({ texto: o.texto, es_correcta: o.es_correcta })))
+        } else {
+          setOpciones([
+            { texto: "", es_correcta: true },
+            { texto: "", es_correcta: false }
+          ])
+        }
+      } else if (pregunta.tipo === 'verdadero_falso') {
+        const isVerdaderoCorrect = pregunta.opciones?.find((o: any) => o.texto === 'Verdadero')?.es_correcta || false;
+        setOpciones([
+          { texto: "Verdadero", es_correcta: isVerdaderoCorrect },
+          { texto: "Falso", es_correcta: !isVerdaderoCorrect }
+        ])
+      } else {
+        setOpciones([
+          { texto: "", es_correcta: true },
+          { texto: "", es_correcta: false }
+        ])
+      }
+    } else {
+      setEditingQuestionId(null)
+      setTipo('multiple')
+      setPreguntaText("")
+      setPuntaje("1")
+      setImagenPreview(null)
+      setImagenFile(null)
+      setOpciones([
+        { texto: "", es_correcta: true },
+        { texto: "", es_correcta: false }
+      ])
+    }
     setIsModalOpen(true)
+  }
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0]
+      setImagenFile(file)
+      setImagenPreview(URL.createObjectURL(file))
+    }
   }
 
   const handleAddOption = () => {
@@ -108,20 +155,71 @@ export default function ExamBuilderPage({ params }: { params: Promise<{ id: stri
       }
     }
 
-    const nextOrden = preguntas.length > 0 ? Math.max(...preguntas.map(p => p.orden)) + 1 : 0
+    let finalImageUrl = imagenPreview;
+    if (imagenPreview && !imagenPreview.startsWith('blob:') && !imagenFile) {
+        finalImageUrl = imagenPreview;
+    } else if (!imagenPreview) {
+        finalImageUrl = null;
+    }
 
-    const { data: nuevaPregunta, error: questionError } = await supabase.from("preguntas").insert({
-      examen_id: examId,
-      tipo,
-      pregunta: preguntaText,
-      puntaje: parseFloat(puntaje),
-      orden: nextOrden
-    }).select().single()
+    if (imagenFile) {
+      setUploadingImage(true)
+      const fileExt = imagenFile.name.split('.').pop()
+      const fileName = `${Math.random()}.${fileExt}`
+      const filePath = `preguntas/${fileName}`
 
-    if (questionError) {
-      toast.error("Error al guardar la pregunta")
-      setSaving(false)
-      return
+      const { error: uploadError } = await supabase.storage
+        .from('exam_images')
+        .upload(filePath, imagenFile)
+
+      if (uploadError) {
+        toast.error("Error al subir la imagen")
+        setSaving(false)
+        setUploadingImage(false)
+        return
+      }
+
+      const { data: { publicUrl } } = supabase.storage.from('exam_images').getPublicUrl(filePath)
+      finalImageUrl = publicUrl
+      setUploadingImage(false)
+    }
+
+    let questionId = editingQuestionId;
+
+    if (editingQuestionId) {
+      const { error: questionError } = await supabase.from("preguntas").update({
+        tipo,
+        pregunta: preguntaText,
+        puntaje: parseFloat(puntaje),
+        imagen_url: finalImageUrl,
+      }).eq("id", editingQuestionId)
+
+      if (questionError) {
+        toast.error("Error al actualizar la pregunta")
+        setSaving(false)
+        return
+      }
+
+      // Delete existing options
+      await supabase.from("opciones").delete().eq("pregunta_id", editingQuestionId);
+    } else {
+      const nextOrden = preguntas.length > 0 ? Math.max(...preguntas.map(p => p.orden)) + 1 : 0
+
+      const { data: nuevaPregunta, error: questionError } = await supabase.from("preguntas").insert({
+        examen_id: examId,
+        tipo,
+        pregunta: preguntaText,
+        puntaje: parseFloat(puntaje),
+        orden: nextOrden,
+        imagen_url: finalImageUrl
+      }).select().single()
+
+      if (questionError) {
+        toast.error("Error al guardar la pregunta")
+        setSaving(false)
+        return
+      }
+      questionId = nuevaPregunta.id;
     }
 
     if (tipo === 'multiple' || tipo === 'verdadero_falso') {
@@ -135,7 +233,7 @@ export default function ExamBuilderPage({ params }: { params: Promise<{ id: stri
 
       const { error: optionsError } = await supabase.from("opciones").insert(
         optsToInsert.map(opt => ({
-          pregunta_id: nuevaPregunta.id,
+          pregunta_id: questionId,
           texto: opt.texto,
           es_correcta: opt.es_correcta
         }))
@@ -146,10 +244,35 @@ export default function ExamBuilderPage({ params }: { params: Promise<{ id: stri
       }
     }
 
-    toast.success("Pregunta agregada")
+    toast.success(editingQuestionId ? "Pregunta actualizada" : "Pregunta agregada")
     setIsModalOpen(false)
     fetchExamAndQuestions()
     setSaving(false)
+  }
+
+  const handleAutoDistributePoints = async () => {
+    if (preguntas.length === 0) return
+    
+    const basePuntaje = Math.floor((20 / preguntas.length) * 100) / 100;
+    
+    let remaining = 20;
+    const updates = preguntas.map((p, index) => {
+      let pScore = basePuntaje;
+      if (index === preguntas.length - 1) {
+        pScore = Number(remaining.toFixed(2));
+      } else {
+        remaining -= basePuntaje;
+      }
+      return { id: p.id, puntaje: pScore }
+    });
+
+    setLoading(true)
+    await Promise.all(updates.map(u => 
+      supabase.from("preguntas").update({ puntaje: u.puntaje }).eq("id", u.id)
+    ))
+
+    toast.success("Puntajes distribuidos a 20 pts")
+    fetchExamAndQuestions()
   }
 
   const handleDeleteQuestion = async (id: string) => {
@@ -246,9 +369,26 @@ export default function ExamBuilderPage({ params }: { params: Promise<{ id: stri
                   {preguntas.length}
                 </span>
               </div>
-              <div className="flex justify-between items-center bg-gradient-to-r from-primary-50 to-accent-50 border border-primary-200 p-3 rounded-xl">
-                <span className="text-[10px] font-bold text-primary-700 uppercase tracking-widest">Puntaje Total</span>
-                <span className="font-bold text-primary-700 text-base">{totalPuntaje} pts</span>
+              <div className={`flex flex-col gap-2 p-3 rounded-xl border transition-colors ${totalPuntaje === 20 ? 'bg-success-50 border-success-200' : 'bg-warning-50 border-warning-200'}`}>
+                <div className="flex justify-between items-center">
+                  <span className={`text-[10px] font-bold uppercase tracking-widest ${totalPuntaje === 20 ? 'text-success-700' : 'text-warning-700'}`}>Puntaje Total</span>
+                  <span className={`font-bold text-base ${totalPuntaje === 20 ? 'text-success-700' : 'text-warning-700'}`}>{totalPuntaje} / 20 pts</span>
+                </div>
+                {totalPuntaje !== 20 && preguntas.length > 0 && (
+                  <div className="flex flex-col gap-2 mt-1">
+                    <p className="text-xs text-warning-700 font-medium leading-tight">
+                      <AlertTriangle className="w-3.5 h-3.5 inline mr-1 mb-0.5" />
+                      El examen debe sumar exactamente 20 puntos.
+                    </p>
+                    <button
+                      onClick={handleAutoDistributePoints}
+                      className="inline-flex items-center justify-center gap-1.5 w-full py-1.5 px-2 bg-warning-600 hover:bg-warning-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
+                    >
+                      <Calculator className="w-3.5 h-3.5" />
+                      Autocalcular a 20 pts
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -263,13 +403,23 @@ export default function ExamBuilderPage({ params }: { params: Promise<{ id: stri
                 <p className="text-xs text-text-tertiary mt-0.5">Configura las preguntas de la evaluación</p>
               </div>
               <button
-                onClick={handleOpenModal}
+                onClick={() => handleOpenModal()}
                 className="inline-flex items-center gap-2 bg-primary-600 text-white hover:bg-primary-700 text-sm font-semibold px-4 h-10 rounded-xl shadow-sm shadow-primary-600/20 hover:shadow-md transition-all"
               >
                 <Plus className="w-4 h-4" />
                 Añadir Pregunta
               </button>
             </div>
+
+            {totalPuntaje !== 20 && preguntas.length > 0 && (
+              <div className="mb-5 bg-warning-50 border border-warning-200 rounded-xl p-4 flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-warning-600 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-bold text-warning-800">Puntaje total incorrecto ({totalPuntaje} / 20 pts)</h4>
+                  <p className="text-xs text-warning-700 mt-1">El puntaje total de las preguntas debe sumar exactamente 20 puntos para que la evaluación sea válida. Puedes ajustar los puntajes manualmente editando cada pregunta o usar el botón de autocalcular en el panel izquierdo.</p>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-3 flex-1">
               {preguntas.length === 0 ? (
@@ -280,7 +430,7 @@ export default function ExamBuilderPage({ params }: { params: Promise<{ id: stri
                   <h3 className="text-base font-bold text-text-primary mb-1.5">Sin Preguntas</h3>
                   <p className="text-sm max-w-sm mb-5">Aún no hay preguntas. Comienza a construir tu evaluación.</p>
                   <button
-                    onClick={handleOpenModal}
+                    onClick={() => handleOpenModal()}
                     className="inline-flex items-center gap-2 bg-white border border-border-default hover:bg-bg-elevated text-text-primary text-sm font-semibold px-4 h-10 rounded-xl transition-all shadow-sm"
                   >
                     <Plus className="w-4 h-4" />
@@ -330,6 +480,12 @@ export default function ExamBuilderPage({ params }: { params: Promise<{ id: stri
 
                         <p className="text-sm font-semibold text-text-primary mb-3">{p.pregunta}</p>
 
+                        {p.imagen_url && (
+                          <div className="mb-3 w-48 h-32 rounded-xl overflow-hidden border border-border-default bg-bg-elevated">
+                            <img src={p.imagen_url} alt="Imagen adjunta" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                          </div>
+                        )}
+
                         {p.tipo === 'multiple' && (
                           <div className="space-y-1.5 bg-bg-elevated/40 p-2.5 rounded-lg">
                             {p.opciones?.map((opt: any) => (
@@ -359,6 +515,13 @@ export default function ExamBuilderPage({ params }: { params: Promise<{ id: stri
                       {/* Acciones */}
                       <div className="flex flex-col gap-1 pl-2 border-l border-border-light justify-center">
                         <button
+                          onClick={() => handleOpenModal(p)}
+                          className="p-1.5 text-text-tertiary hover:text-accent-600 hover:bg-accent-50 rounded-lg transition-colors"
+                          title="Editar Pregunta"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
                           onClick={() => handleDeleteQuestion(p.id)}
                           className="p-1.5 text-text-tertiary hover:text-danger-600 hover:bg-danger-50 rounded-lg transition-colors"
                           title="Eliminar Pregunta"
@@ -379,7 +542,7 @@ export default function ExamBuilderPage({ params }: { params: Promise<{ id: stri
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Añadir Nueva Pregunta"
+        title={editingQuestionId ? "Editar Pregunta" : "Añadir Nueva Pregunta"}
         description="Configura el enunciado, tipo y opciones de respuesta."
         size="lg"
       >
@@ -435,6 +598,40 @@ export default function ExamBuilderPage({ params }: { params: Promise<{ id: stri
               className="w-full px-3.5 py-3 rounded-xl border border-border-default bg-white text-sm text-text-primary focus:outline-none focus:ring-4 focus:ring-primary-500/15 focus:border-primary-500 transition-all resize-none min-h-[100px]"
               placeholder="Escribe la pregunta detalladamente aquí..."
             />
+          </div>
+
+          <div className="pt-2">
+            <label className="block text-sm font-semibold text-text-primary mb-1.5">
+              Imagen de la Pregunta (Opcional)
+            </label>
+            <div className="flex items-center gap-4">
+              {imagenPreview ? (
+                <div className="relative w-48 h-32 rounded-xl overflow-hidden border border-border-default bg-bg-elevated">
+                  <img src={imagenPreview} alt="Vista previa" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImagenFile(null)
+                      setImagenPreview(null)
+                    }}
+                    className="absolute top-2 right-2 bg-white text-danger-600 p-1.5 rounded-full hover:bg-danger-50 hover:text-danger-700 transition-colors shadow-sm"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="w-full h-24 rounded-xl border-2 border-dashed border-border-default flex flex-col items-center justify-center bg-bg-elevated/50 hover:bg-bg-elevated transition-colors relative cursor-pointer group">
+                  <ImagePlus className="w-5 h-5 text-text-tertiary mb-1 group-hover:text-primary-500 transition-colors" />
+                  <span className="text-xs font-medium text-text-secondary">Clic para subir imagen</span>
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    onChange={handleImageChange}
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
           {tipo === 'multiple' && (
@@ -526,7 +723,7 @@ export default function ExamBuilderPage({ params }: { params: Promise<{ id: stri
               ) : (
                 <>
                   <Save className="w-4 h-4" />
-                  Guardar Pregunta
+                  {editingQuestionId ? "Guardar Cambios" : "Guardar Pregunta"}
                 </>
               )}
             </button>

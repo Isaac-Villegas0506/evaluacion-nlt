@@ -67,6 +67,7 @@ export interface Database {
           examen_id: string | null
           tipo: 'multiple' | 'verdadero_falso' | 'corta' | 'desarrollo'
           pregunta: string
+          imagen_url: string | null
           puntaje: number
           orden: number
         }
@@ -75,6 +76,7 @@ export interface Database {
           examen_id?: string | null
           tipo: 'multiple' | 'verdadero_falso' | 'corta' | 'desarrollo'
           pregunta: string
+          imagen_url?: string | null
           puntaje?: number
           orden?: number
         }
@@ -83,6 +85,7 @@ export interface Database {
           examen_id?: string | null
           tipo?: 'multiple' | 'verdadero_falso' | 'corta' | 'desarrollo'
           pregunta?: string
+          imagen_url?: string | null
           puntaje?: number
           orden?: number
         }
